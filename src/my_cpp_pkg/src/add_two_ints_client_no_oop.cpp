@@ -13,7 +13,7 @@ int main(int args, char **argv)
     }
 
     auto request = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
-    request->a = 3;
+    request->a = 4;
     request->b = 8;
 
     auto future = client->async_send_request(request);
