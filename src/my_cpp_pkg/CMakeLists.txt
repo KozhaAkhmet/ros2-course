@@ -43,6 +43,12 @@ ament_target_dependencies(add_two_ints_client rclcpp example_interfaces)
 add_executable(hw_status_publisher src/hw_status_publisher.cpp)
 ament_target_dependencies(hw_status_publisher rclcpp my_robot_interfaces)
 
+add_executable(battery_node src/battery_node.cpp)
+ament_target_dependencies(battery_node rclcpp my_robot_interfaces)
+
+add_executable(panel_node src/panel_node.cpp)
+ament_target_dependencies(panel_node rclcpp my_robot_interfaces)
+
 install(TARGETS
   cpp_node
   robot_news_station
@@ -53,6 +59,8 @@ install(TARGETS
   add_two_ints_client_no_oop
   add_two_ints_client
   hw_status_publisher
+  battery_node
+  panel_node
   DESTINATION lib/${PROJECT_NAME}
  )
 
