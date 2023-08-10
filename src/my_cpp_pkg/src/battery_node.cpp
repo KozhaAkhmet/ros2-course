@@ -8,9 +8,8 @@ public:
     {
         RCLCPP_INFO(this->get_logger(), "Battery Node now is active!");
 
-        // timer_ = this->create_wall_timer(std::chrono::seconds(4),
-        //                                  std::bind(&BatteryNode::callSetLedService, this, 2, "on"));
-        threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 2, "on")));
+        timer_ = this->create_wall_timer(std::chrono::seconds(4),
+                                         std::bind(&BatteryNode::batteryStatusUpdate, this));
     }
 
 private:
@@ -39,6 +38,12 @@ private:
             RCLCPP_ERROR(this->get_logger(), "Service call failed");
         }
     }
+
+    void batteryStatusUpdate()
+    {
+        threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 2, "on")));
+    }
+
     rclcpp::TimerBase::SharedPtr timer_;
     std::vector<std::thread> threads_;  
     int counter_;

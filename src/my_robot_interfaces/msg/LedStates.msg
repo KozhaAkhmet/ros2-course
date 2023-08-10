@@ -1,1 +1,1 @@
-int64 led_state
+int64[] led_state
