@@ -8,7 +8,7 @@ public:
     {
         server_ = this->create_service<example_interfaces::srv::AddTwoInts>("add_two_ints",
                                                                             std::bind(&AddTwoIntsServerNode::callbackAddTwoInts, this, std::placeholders::_1, std::placeholders::_2));
-        RCLCPP_INFO(this->get_logger(), "Service server has benn started");
+        RCLCPP_INFO(this->get_logger(), "Service server has been started");
     }   
 
 private:
