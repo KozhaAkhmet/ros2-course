@@ -8,12 +8,13 @@ public:
     {
         RCLCPP_INFO(this->get_logger(), "Battery Node now is active!");
 
-        timer_ = this->create_wall_timer(std::chrono::seconds(4),
+        battery_timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
                                          std::bind(&BatteryNode::batteryStatusUpdate, this));
+        
     }
 
 private:
-    void callSetLedService(int a, bool b)
+    void callSetLedService(int64_t a, bool b)
     {
         auto client = this->create_client<my_robot_interfaces::srv::SetLed>("set_led");
 
@@ -27,13 +28,18 @@ private:
         request->state = b;
 
         auto future = client->async_send_request(request);
-
+        future.wait();
+        callbackCallSetLed(future.get(), a, b);
+        
+    }
+    void callbackCallSetLed(const my_robot_interfaces::srv::SetLed::Response::SharedPtr responce, int64_t led_number, bool states)
+    {
         try
         {
-            auto responce = future.get();
-            RCLCPP_INFO(this->get_logger(), "%d + %s = %d", a, b, responce->success);
+            RCLCPP_INFO(this->get_logger(), "Sending a request....\n led_number: %d | state: %d | Success: %d", 
+                                                                                    led_number, states, responce->success);
         }
-        catch (const std::exception &e)
+        catch(const std::exception &e)
         {
             RCLCPP_ERROR(this->get_logger(), "Service call failed");
         }
@@ -41,11 +47,36 @@ private:
 
     void batteryStatusUpdate()
     {
-        threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 2, "on")));
+        // threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 2, "on")));
+        auto time_now = get_current_time_seconds();
+        if (battery_ == "full")
+        {
+            if (time_now - last_time_ > 4.0)
+            {
+                battery_ = "empty";
+                RCLCPP_INFO(this->get_logger(),"Battery is empty.");
+                last_time_ = time_now;
+                threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 3, true)));
+            }
+        }
+        else if( time_now - last_time_ > 6.0)
+            {
+                battery_ = "full";
+                RCLCPP_INFO(this->get_logger(),"Battery is charged.");
+                last_time_ = time_now;
+                threads_.push_back(std::thread(std::bind(&BatteryNode::callSetLedService, this, 3, false)));
+            }
     }
 
-    rclcpp::TimerBase::SharedPtr timer_;
+    double get_current_time_seconds()
+    {
+        return this->get_clock()->now().seconds();
+    }
+
+    rclcpp::TimerBase::SharedPtr battery_timer_;
+    double last_time_ = BatteryNode::get_current_time_seconds();
     std::vector<std::thread> threads_;  
+    std::string battery_ = "full";
     int counter_;
 };
 

@@ -13,7 +13,7 @@ public:
 
         server_ = this->create_service<my_robot_interfaces::srv::SetLed>("set_led",
                                                                             std::bind(&PanelNode::callbackSetLed, this, std::placeholders::_1, std::placeholders::_2));
-        RCLCPP_INFO(this->get_logger(), "Set led service server has benn started");
+        RCLCPP_INFO(this->get_logger(), "Set led service server has been started");
     }   
 
 private:
@@ -22,21 +22,24 @@ private:
     {
         try
         {
-            response->success = true;
-            if(request->state)
-                led_panel[request->led_number - 1] = 1;
-            else if(!request->state)
-                led_panel[request->led_number - 1] = 0;
-            else 
+            if(request->led_number <= 0 || request->led_number > 3)
+            {
                 response->success = false;
+                return;
+            }
+
+            led_panel[request->led_number - 1] = request->state;
+            response->success = true;
+            publishLedStates();
         }
         catch (const std::exception &e)
         {
             response->success = false;
+            RCLCPP_INFO(this->get_logger(), "set_led request is failed.");
         }
-
-        RCLCPP_INFO(this->get_logger(), "Led number: %d  State: %d | Success: %d   led panel: %d %d %d", request->led_number, request->state, response->success,
+            RCLCPP_INFO(this->get_logger(), "Led number: %d  State: %d | Success: %d   led panel: %d %d %d", request->led_number, request->state, response->success,
                                                                                 led_panel[0], led_panel[1], led_panel[2]);
+            
     }
     void publishLedStates()
     {
