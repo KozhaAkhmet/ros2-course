@@ -7,6 +7,9 @@ class PanelNode : public rclcpp::Node
 public:
     PanelNode() : Node("panel_node")
     {
+        this->declare_parameter("led_states", std::vector<int64_t>(3));
+
+        led_panel_ = this->get_parameter("led_states").as_integer_array();
         publisher_ = this->create_publisher<my_robot_interfaces::msg::LedStates>("led_panel_state",10);
 
         timer_ = this->create_wall_timer(std::chrono::seconds(4),std::bind(&PanelNode::publishLedStates,this));
@@ -28,7 +31,7 @@ private:
                 return;
             }
 
-            led_panel[request->led_number - 1] = request->state;
+            led_panel_[request->led_number - 1] = request->state;
             response->success = true;
             publishLedStates();
         }
@@ -38,19 +41,19 @@ private:
             RCLCPP_INFO(this->get_logger(), "set_led request is failed.");
         }
             RCLCPP_INFO(this->get_logger(), "Led number: %d  State: %d | Success: %d   led panel: %d %d %d", request->led_number, request->state, response->success,
-                                                                                led_panel[0], led_panel[1], led_panel[2]);
+                                                                                led_panel_[0], led_panel_[1], led_panel_[2]);
             
     }
     void publishLedStates()
     {
         auto msg = my_robot_interfaces::msg::LedStates();
-        msg.led_state = led_panel;
+        msg.led_state = led_panel_;
         publisher_->publish(msg);
     }
     rclcpp::Publisher<my_robot_interfaces::msg::LedStates>::SharedPtr publisher_;
 
     rclcpp::Service<my_robot_interfaces::srv::SetLed>::SharedPtr server_;
-    std::vector<int64_t> led_panel = std::vector<int64_t>(3);
+    std::vector<int64_t> led_panel_ = std::vector<int64_t>(3);
     rclcpp::TimerBase::SharedPtr timer_;
 };
 
