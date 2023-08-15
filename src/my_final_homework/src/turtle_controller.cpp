@@ -29,23 +29,24 @@ private:
 
     void aliveTurtlesCallback(my_final_homework_interfaces::msg::TurtleArray::SharedPtr msg)
     {
-        current_alive_turtles_.turtles = msg->turtles;
-        if (current_alive_turtles_.turtles.size())
-        {
+        current_alive_turtles_ = *msg.get();
+        // if (current_alive_turtles_.turtles.size())
+        // {
             auto target = current_alive_turtles_.turtles[0];
 
             lookToTurtle(&target);
-        }
+        // }
     }
 
     void lookToTurtle(msg::Turtle *target)
     {
-        double direction_x = target->turtle_position.position.x - pred_turtle_pose_.x;
-        double direction_y = target->turtle_position.position.y - pred_turtle_pose_.y;
+        double direction_x = target->turtle_position.x - pred_turtle_pose_.x;
+        double direction_y = target->turtle_position.y - pred_turtle_pose_.y;
         double theta = std::atan2(direction_x, direction_y);
 
         auto my_twist = geometry_msgs::msg::Twist();
         my_twist.angular.x = theta - pred_turtle_pose_.theta;
+        RCLCPP_INFO(get_logger(), "theta: %f target theta: %f", pred_turtle_pose_.theta, theta);
         cmd_vel_publisher_->publish(my_twist);
     }
 

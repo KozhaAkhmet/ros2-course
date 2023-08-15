@@ -14,11 +14,13 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(turtlesim REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Turtle.msg"
   "msg/TurtleArray.msg"
   "srv/CatchTurtle.srv"
+  DEPENDENCIES turtlesim
 )
 
 ament_export_dependencies(rosidl_default_runtime)
