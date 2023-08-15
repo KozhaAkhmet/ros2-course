@@ -69,9 +69,9 @@ private:
     {
         auto random_x = std::rand() / 10;
         threads_.push_back(std::thread(std::bind(&TurtleSpawnerNode::callSpawnTurtle, this,
-                                                 std::rand() % 10,
-                                                 std::rand() % 10,
-                                                 (std::rand() % 10) / 10)));
+                                                 std::rand() % 11,
+                                                 std::rand() % 11,
+                                                 (std::rand() % 11) / 10)));
     }
 
     void updateAliveTurtles()

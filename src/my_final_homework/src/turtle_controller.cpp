@@ -19,6 +19,8 @@ public:
                                                                                                               std::bind(&TurtleControlNode::aliveTurtlesCallback, this, std::placeholders::_1));
 
         cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("turtle1/cmd_vel", 10);
+
+        update_loop_timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&TurtleControlNode::updateTimer, this));
     }
 
 private:
@@ -30,31 +32,35 @@ private:
     void aliveTurtlesCallback(my_final_homework_interfaces::msg::TurtleArray::SharedPtr msg)
     {
         current_alive_turtles_ = *msg.get();
-        // if (current_alive_turtles_.turtles.size())
-        // {
-            auto target = current_alive_turtles_.turtles[0];
-
-            lookToTurtle(&target);
-        // }
     }
 
-    void lookToTurtle(msg::Turtle *target)
+    void lookAndMoveToTurtle(msg::Turtle *target)
     {
         double direction_x = target->turtle_position.x - pred_turtle_pose_.x;
         double direction_y = target->turtle_position.y - pred_turtle_pose_.y;
         double theta = std::atan2(direction_x, direction_y);
 
         auto my_twist = geometry_msgs::msg::Twist();
-        my_twist.angular.x = theta - pred_turtle_pose_.theta;
-        RCLCPP_INFO(get_logger(), "theta: %f target theta: %f", pred_turtle_pose_.theta, theta);
+        my_twist.angular.z = (pred_turtle_pose_.theta - theta)/sqrt(pred_turtle_pose_.theta*pred_turtle_pose_.theta + theta*theta)*1.2;
+        my_twist.angular.x = 0;
+        my_twist.linear.x = sqrt(direction_x*direction_x + direction_y*direction_y)/10;
+        my_twist.linear.y = 0;
+        // *1000 (int) (float) /1000 by this is removes the right side of the number
+        RCLCPP_INFO(get_logger(), "pred theta: %f target theta: %f", pred_turtle_pose_.theta, theta);
         cmd_vel_publisher_->publish(my_twist);
     }
 
-    void moveTowardsTo()
-    {
 
-    }
     
+    void updateTimer()
+    {
+        if (current_alive_turtles_.turtles.size())
+        {
+            auto target = current_alive_turtles_.turtles[0];
+            RCLCPP_INFO(get_logger(), "target turtle is %s", target.turtle_name.c_str());
+            lookAndMoveToTurtle(&target);
+        }
+    }
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<turtlesim::msg::Pose>::SharedPtr pose_subscriber_;
     rclcpp::Subscription<my_final_homework_interfaces::msg::TurtleArray>::SharedPtr alive_turtles_subscriber_;
@@ -62,6 +68,7 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 
     turtlesim::msg::Pose pred_turtle_pose_;
+    rclcpp::TimerBase::SharedPtr update_loop_timer_;
 };
 
 int main(int args, char **argv)
