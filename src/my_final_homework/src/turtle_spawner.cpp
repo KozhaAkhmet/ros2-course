@@ -28,8 +28,8 @@ private:
             RCLCPP_WARN(this->get_logger(), "Waiting for /spawn to be up....");
         }
 
-        if (alive_turtles_.turtles.size() < 5)
-        {
+        // if (alive_turtles_.turtles.size() < 5)
+        // {
             auto request = std::make_shared<turtlesim::srv::Spawn::Request>();
             request->x = x;
             request->y = y;
@@ -40,9 +40,8 @@ private:
             {
                 auto responce = future.get();
                 new_turlte_name_ = responce->name;
-                // alive_turtles_.turtles
                 RCLCPP_INFO(this->get_logger(), "Spawning %s...", new_turlte_name_.c_str());
-                // Subscribe to spawned turtle by its name like (turlte name)/Pose
+
 
                 std::string subscription = new_turlte_name_ + "/pose";
                 RCLCPP_INFO(this->get_logger(), "Subscribing to %s...",subscription.c_str());
@@ -51,18 +50,21 @@ private:
                                                                                             std::bind(&TurtleSpawnerNode::callbackGetNewTurtlePose, this, std::placeholders::_1)
                                                                                             );
 
-            my_final_homework_interfaces::msg::Turtle new_turtle;
-            new_turtle.turtle_name = new_turlte_name_;
-            new_turtle.turtle_position = new_turtle_pose_;
-            alive_turtles_.turtles.push_back(new_turtle);
-            RCLCPP_INFO(this->get_logger(), "Subscribed to new turtle pose. Publishing alive turtles....");
-            alive_turtles_publisher_->publish(alive_turtles_);
+                my_final_homework_interfaces::msg::Turtle new_turtle;
+                new_turtle.turtle_name = new_turlte_name_;
+                new_turtle.turtle_position.x = x;
+                new_turtle.turtle_position.y = y;
+                RCLCPP_INFO(get_logger(), "new turtle x: %f y: %f", new_turtle.turtle_position.x, new_turtle.turtle_position.y );
+
+                alive_turtles_.turtles.push_back(new_turtle);
+                RCLCPP_INFO(this->get_logger(), "Subscribed to new turtle pose. Publishing alive turtles....");
+                alive_turtles_publisher_->publish(alive_turtles_);
             }
             catch (const std::exception &e)
             {
                 RCLCPP_ERROR(this->get_logger(), "Spawn service call failed");
             }
-        }
+        // }
     }
 
     void spawnRandomTurtles()
@@ -74,9 +76,6 @@ private:
                                                  (std::rand() % 11) / 10)));
     }
 
-    void updateAliveTurtles()
-    {
-    }
     void callbackGetNewTurtlePose(const turtlesim::msg::Pose::SharedPtr msg)
     {
         new_turtle_pose_ = *msg.get();
