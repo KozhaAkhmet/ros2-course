@@ -41,8 +41,6 @@ private:
     {
         current_alive_turtles_ = *msg.get();
         RCLCPP_INFO(get_logger(), "size of the alive vector %d", current_alive_turtles_.turtles.size());
-        // if (current_alive_turtles_.turtles.size() > index_ + 1)
-        //     index_++;
         target_turtle_ = current_alive_turtles_.turtles.back();
          RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
  
@@ -122,7 +120,6 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
     my_final_homework_interfaces::msg::Turtle target_turtle_;
     std::string killed_turtle_name;
-    int index_;
     double distance_;
     std::vector<std::thread> threads_;
 

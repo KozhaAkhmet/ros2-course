@@ -27,9 +27,6 @@ private:
         {
             RCLCPP_WARN(this->get_logger(), "Waiting for /spawn to be up....");
         }
-
-        // if (alive_turtles_.turtles.size() < 5)
-        // {
             auto request = std::make_shared<turtlesim::srv::Spawn::Request>();
             request->x = x;
             request->y = y;
@@ -45,10 +42,6 @@ private:
 
                 std::string subscription = new_turlte_name_ + "/pose";
                 RCLCPP_INFO(this->get_logger(), "Subscribing to %s...",subscription.c_str());
-                new_turtle_pose_subscriber_ = this->create_subscription<turtlesim::msg::Pose>(subscription.c_str(),
-                                                                                            10,
-                                                                                            std::bind(&TurtleSpawnerNode::callbackGetNewTurtlePose, this, std::placeholders::_1)
-                                                                                            );
 
                 my_final_homework_interfaces::msg::Turtle new_turtle;
                 new_turtle.turtle_name = new_turlte_name_;
@@ -64,7 +57,6 @@ private:
             {
                 RCLCPP_ERROR(this->get_logger(), "Spawn service call failed");
             }
-        // }
     }
 
     void spawnRandomTurtles()
@@ -76,21 +68,12 @@ private:
                                                  (std::rand() % 11) / 10)));
     }
 
-    void callbackGetNewTurtlePose(const turtlesim::msg::Pose::SharedPtr msg)
-    {
-        new_turtle_pose_ = *msg.get();
-    }
-
     rclcpp::Publisher<int64_t>::SharedPtr publisher_;
     rclcpp::TimerBase::SharedPtr spawn_timer_;
     std::vector<std::thread> threads_;
     my_final_homework_interfaces::msg::TurtleArray alive_turtles_;
     rclcpp::Publisher<my_final_homework_interfaces::msg::TurtleArray>::SharedPtr alive_turtles_publisher_;
-    rclcpp::Subscription<turtlesim::msg::Pose>::SharedPtr new_turtle_pose_subscriber_;
-    turtlesim::msg::Pose new_turtle_pose_;
     std::string new_turlte_name_;
-
-    int counter_;
 };
 
 int main(int args, char **argv)
