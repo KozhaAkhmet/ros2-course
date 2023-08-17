@@ -43,27 +43,7 @@ private:
     {
         current_alive_turtles_ = *msg.get();
         // RCLCPP_INFO(get_logger(), "size of the alive turtle vector %d", current_alive_turtles_.turtles.size());
-        if (current_alive_turtles_.turtles.size() == 1)
-        {
-            target_turtle_ = current_alive_turtles_.turtles[0];
-        }
-        else
-        {
-            //Calculating closest target turtle
-            msg::Turtle closest_turtle = current_alive_turtles_.turtles[0];
-            double closest_distance = 20; //Maximum possible distance
-            for (auto const& current : current_alive_turtles_.turtles)
-            {
-                if (calculateDistaneBetweenTurtles(pred_turtle_pose_, current) < closest_distance)
-                {
-                    target_turtle_ = current;
-                    closest_distance = calculateDistaneBetweenTurtles(pred_turtle_pose_, current);
-                }
-            }
-        }
-        //  RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
- 
-        RCLCPP_INFO(get_logger(), "target turtle is %s", target_turtle_.turtle_name.c_str());
+        
     }
 
     void lookAndMoveToTurtle()
@@ -107,28 +87,61 @@ private:
 
     void callKillTargetTurtle()
     {
-        auto client = this->create_client<turtlesim::srv::Kill>("kill");
-
-        while (!client->wait_for_service(std::chrono::seconds(1)))
-        {
-            RCLCPP_WARN(this->get_logger(), "Waiting for kill service to be up....");
-        }
-
-        auto request = std::make_shared<turtlesim::srv::Kill::Request>();
-        request->name = target_turtle_.turtle_name;
-
-        auto future = client->async_send_request(request);
-        RCLCPP_INFO(get_logger(), "target turtle %s has been killed.", target_turtle_.turtle_name.c_str());
-        
-        killed_turtle_name = target_turtle_.turtle_name;
         killed_turtle_publisher->publish(target_turtle_);
+        killed_turtle_name = target_turtle_.turtle_name;
+        RCLCPP_INFO(get_logger(), "target turtle %s has been killed.", target_turtle_.turtle_name.c_str());
     }
 
     void updateTimer()
     {
+        if(current_alive_turtles_.turtles.size() == 0)
+        {
+            return;
+        }
+        else if (current_alive_turtles_.turtles.size() == 1)
+        {
+            target_turtle_ = current_alive_turtles_.turtles[0];
+        }
+        else
+        {
+            //Calculating closest target turtle
+            msg::Turtle closest_turtle = current_alive_turtles_.turtles[0];
+            double closest_distance = 20; //Maximum possible distance
+            for (auto const& current : current_alive_turtles_.turtles)
+            {
+                if (calculateDistaneBetweenTurtles(pred_turtle_pose_, current) < closest_distance)
+                {
+                    target_turtle_ = current;
+                    closest_distance = calculateDistaneBetweenTurtles(pred_turtle_pose_, current);
+                }
+            }
+        }
+        //  RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
+ 
+        RCLCPP_INFO(get_logger(), "target turtle is %s", target_turtle_.turtle_name.c_str());
         if (target_turtle_.turtle_name != killed_turtle_name)
         {
             lookAndMoveToTurtle();
+        }
+        else
+        {
+            // target_turtle_ = *current_alive_turtles_.turtles.begin();
+            for(auto i = current_alive_turtles_.turtles.begin(); i != current_alive_turtles_.turtles.end(); i++)
+            {
+                if(*i == target_turtle_)
+                {   
+                    try
+                    {
+                        current_alive_turtles_.turtles.erase(i);
+                        RCLCPP_WARN(this->get_logger(), "%s turtle is erased!.", i->turtle_name.c_str());
+                    }
+                    catch(const std::exception& e)
+                    {
+                        RCLCPP_ERROR(this->get_logger(), "Erasing the turtle is failed.");
+                    }
+                    
+                }
+            }
         }
         // RCLCPP_INFO(get_logger(), "pred turtle x: %f y: %f", pred_turtle_pose_.x, pred_turtle_pose_.y );
     }
