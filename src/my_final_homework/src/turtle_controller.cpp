@@ -15,6 +15,10 @@ public:
     {
         RCLCPP_INFO(this->get_logger(), "Turtle control node is active.");
 
+        this->declare_parameter("catch_closest", true);
+
+        catch_closest = this->get_parameter("catch_closest").as_bool();
+
         pose_subscriber_ = this->create_subscription<turtlesim::msg::Pose>("turtle1/pose", 10,
                                                                            std::bind(&TurtleControlNode::poseControlCallBack, this, std::placeholders::_1));
 
@@ -104,17 +108,22 @@ private:
         }
         else
         {
-            //Calculating closest target turtle
-            msg::Turtle closest_turtle = current_alive_turtles_.turtles[0];
-            double closest_distance = 20; //Maximum possible distance
-            for (auto const& current : current_alive_turtles_.turtles)
+            if(catch_closest)
             {
-                if (calculateDistaneBetweenTurtles(pred_turtle_pose_, current) < closest_distance)
-                {
-                    target_turtle_ = current;
-                    closest_distance = calculateDistaneBetweenTurtles(pred_turtle_pose_, current);
+                //Calculating closest target turtle
+                msg::Turtle closest_turtle = current_alive_turtles_.turtles[0];
+                double closest_distance = 20; //Maximum possible distance
+                    for (auto const& current : current_alive_turtles_.turtles)
+                    {
+                        if (calculateDistaneBetweenTurtles(pred_turtle_pose_, current) < closest_distance)
+                        {
+                            target_turtle_ = current;
+                            closest_distance = calculateDistaneBetweenTurtles(pred_turtle_pose_, current);
+                        }
+                    }
                 }
-            }
+            else
+                target_turtle_ = current_alive_turtles_.turtles[0];
         }
         //  RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
  
@@ -166,6 +175,7 @@ private:
     std::vector<std::thread> threads_;
     turtlesim::msg::Pose pred_turtle_pose_;
     rclcpp::TimerBase::SharedPtr update_loop_timer_;
+    bool catch_closest;
 };
 
 int main(int args, char **argv)
