@@ -11,13 +11,15 @@ public:
     {
         RCLCPP_INFO(this->get_logger(), "Turtle spawner node is active.");
 
+        this->declare_parameter("spawn_milliseconds", 1000);
+
+        milliseconds_ = this->get_parameter("spawn_milliseconds").as_int();
         alive_turtles_publisher_ = this->create_publisher<my_final_homework_interfaces::msg::TurtleArray>("alive_turtles", 10);
 
         killed_turtle_subscription = this->create_subscription<my_final_homework_interfaces::msg::Turtle>("killed_turtle", 10,
                                                                                                               std::bind(&TurtleSpawnerNode::removeFromAliveTurltes, this, std::placeholders::_1));
 
-
-        spawn_timer_ = this->create_wall_timer(std::chrono::milliseconds(500),
+        spawn_timer_ = this->create_wall_timer(std::chrono::milliseconds(milliseconds_),
                                                std::bind(&TurtleSpawnerNode::spawnRandomTurtles, this));
         
         alive_turtles_.turtles.clear();
@@ -38,6 +40,7 @@ private:
             request->theta = theta;
             auto future = client->async_send_request(request);
             future.wait();
+            
             try
             {
                 auto responce = future.get();
@@ -66,6 +69,7 @@ private:
             {
                 RCLCPP_ERROR(this->get_logger(), "Spawn service call failed");
             }
+ 
     }
 
     void spawnRandomTurtles()
@@ -101,23 +105,25 @@ private:
         killed_turtle = *msg.get();
         threads_.push_back(std::thread(std::bind(&TurtleSpawnerNode::callKillTargetTurtle, this)));
         
-        for(auto i = alive_turtles_.turtles.begin(); i != alive_turtles_.turtles.end(); i++)
-        {
-            if(*i == *msg.get())
-            {   
-                try
-                {
-                    alive_turtles_.turtles.erase(i);
-                    alive_turtles_publisher_->publish(alive_turtles_);
-                    RCLCPP_WARN(this->get_logger(), "%s turtle is erased!.", i->turtle_name.c_str());
+
+            for(auto i = alive_turtles_.turtles.begin(); i != alive_turtles_.turtles.end(); i++)
+            {
+                if(*i == *msg.get())
+                {   
+                    try
+                    {
+                        alive_turtles_.turtles.erase(i);
+                        alive_turtles_publisher_->publish(alive_turtles_);
+                        RCLCPP_WARN(this->get_logger(), "%s turtle is erased!.", i->turtle_name.c_str());
+                    }
+                    catch(const std::exception& e)
+                    {
+                        RCLCPP_ERROR(this->get_logger(), "Erasing the turtle is failed.");
+                    }
+                    
                 }
-                catch(const std::exception& e)
-                {
-                    RCLCPP_ERROR(this->get_logger(), "Erasing the turtle is failed.");
-                }
-                
             }
-        }
+        
     }
 
     rclcpp::Publisher<int64_t>::SharedPtr publisher_;
@@ -128,6 +134,7 @@ private:
     rclcpp::Subscription<my_final_homework_interfaces::msg::Turtle>::SharedPtr killed_turtle_subscription;
     std::string new_turlte_name_;
     my_final_homework_interfaces::msg::Turtle killed_turtle;
+    int milliseconds_;
 };
 
 int main(int args, char **argv)
