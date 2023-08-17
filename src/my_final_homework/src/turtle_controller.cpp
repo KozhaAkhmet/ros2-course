@@ -23,6 +23,8 @@ public:
 
         cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("turtle1/cmd_vel", 10);
 
+        killed_turtle_publisher = this->create_publisher<my_final_homework_interfaces::msg::Turtle>("killed_turtle",10);
+
         update_loop_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&TurtleControlNode::updateTimer, this));
 
         // target_turtle_.turtle_position.x = 10.0;
@@ -40,9 +42,26 @@ private:
     void aliveTurtlesCallback(my_final_homework_interfaces::msg::TurtleArray::SharedPtr msg)
     {
         current_alive_turtles_ = *msg.get();
-        RCLCPP_INFO(get_logger(), "size of the alive vector %d", current_alive_turtles_.turtles.size());
-        target_turtle_ = current_alive_turtles_.turtles.back();
-         RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
+        // RCLCPP_INFO(get_logger(), "size of the alive turtle vector %d", current_alive_turtles_.turtles.size());
+        if (current_alive_turtles_.turtles.size() == 1)
+        {
+            target_turtle_ = current_alive_turtles_.turtles[0];
+        }
+        else
+        {
+            //Calculating closest target turtle
+            msg::Turtle closest_turtle = current_alive_turtles_.turtles[0];
+            double closest_distance = 20; //Maximum possible distance
+            for (auto const& current : current_alive_turtles_.turtles)
+            {
+                if (calculateDistaneBetweenTurtles(pred_turtle_pose_, current) < closest_distance)
+                {
+                    target_turtle_ = current;
+                    closest_distance = calculateDistaneBetweenTurtles(pred_turtle_pose_, current);
+                }
+            }
+        }
+        //  RCLCPP_INFO(get_logger(), "target turtle x: %f y: %f", target_turtle_.turtle_position.x, target_turtle_.turtle_position.y );
  
         RCLCPP_INFO(get_logger(), "target turtle is %s", target_turtle_.turtle_name.c_str());
     }
@@ -99,9 +118,10 @@ private:
         request->name = target_turtle_.turtle_name;
 
         auto future = client->async_send_request(request);
-        RCLCPP_INFO(get_logger(), "target turtle %s has been killed. Next is %d", target_turtle_.turtle_name.c_str(), index_ + 3);
+        RCLCPP_INFO(get_logger(), "target turtle %s has been killed.", target_turtle_.turtle_name.c_str());
         
         killed_turtle_name = target_turtle_.turtle_name;
+        killed_turtle_publisher->publish(target_turtle_);
     }
 
     void updateTimer()
@@ -111,18 +131,26 @@ private:
             lookAndMoveToTurtle();
         }
         // RCLCPP_INFO(get_logger(), "pred turtle x: %f y: %f", pred_turtle_pose_.x, pred_turtle_pose_.y );
-
     }
+
+    double calculateDistaneBetweenTurtles(turtlesim::msg::Pose from, msg::Turtle to)
+    {
+        double x_diff = to.turtle_position.x - from.x;
+        double y_diff = to.turtle_position.y - from.y;
+        return sqrt(x_diff*x_diff + y_diff*y_diff);
+    }
+
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<turtlesim::msg::Pose>::SharedPtr pose_subscriber_;
     rclcpp::Subscription<my_final_homework_interfaces::msg::TurtleArray>::SharedPtr alive_turtles_subscriber_;
     my_final_homework_interfaces::msg::TurtleArray current_alive_turtles_;
+    rclcpp::Publisher<my_final_homework_interfaces::msg::Turtle>::SharedPtr killed_turtle_publisher;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
     my_final_homework_interfaces::msg::Turtle target_turtle_;
     std::string killed_turtle_name;
     double distance_;
-    std::vector<std::thread> threads_;
 
+    std::vector<std::thread> threads_;
     turtlesim::msg::Pose pred_turtle_pose_;
     rclcpp::TimerBase::SharedPtr update_loop_timer_;
 };
